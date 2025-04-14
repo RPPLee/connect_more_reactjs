@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { FontAwesomeIcon } from '@fortawesome/react-fontawesome';
 import { faCalendarAlt, faCalendarDay } from '@fortawesome/free-solid-svg-icons';
 
@@ -17,7 +17,31 @@ const UpdateEventModal: React.FC<UpdateEventModalProps> = ({
   onUpdateAll,
   hasRecurrence
 }) => {
+  // Log when modal appears/disappears
+  useEffect(() => {
+    console.log("UpdateEventModal - isOpen changed:", isOpen);
+  }, [isOpen]);
+
+  // If not open, don't render anything
   if (!isOpen) return null;
+
+  console.log("UpdateEventModal - Rendering with props:", { isOpen, hasRecurrence });
+
+  // Handlers with logging
+  const handleUpdateSingle = () => {
+    console.log("UpdateEventModal - Update Single clicked");
+    onUpdateSingle();
+  };
+
+  const handleUpdateAll = () => {
+    console.log("UpdateEventModal - Update All clicked");
+    onUpdateAll();
+  };
+
+  const handleClose = () => {
+    console.log("UpdateEventModal - Close clicked");
+    onClose();
+  };
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
@@ -35,7 +59,7 @@ const UpdateEventModal: React.FC<UpdateEventModalProps> = ({
         <div className="space-y-4">
           {hasRecurrence && (
             <button
-              onClick={onUpdateSingle}
+              onClick={handleUpdateSingle}
               className="w-full p-4 border border-gray-300 dark:border-gray-700 rounded-lg flex items-center hover:bg-light-bg-tertiary dark:hover:bg-dark-bg-tertiary transition-colors"
             >
               <FontAwesomeIcon icon={faCalendarDay} className="text-cm-blue dark:text-cm-yellow mr-3 text-xl" />
@@ -49,7 +73,7 @@ const UpdateEventModal: React.FC<UpdateEventModalProps> = ({
           )}
           
           <button
-            onClick={onUpdateAll}
+            onClick={handleUpdateAll}
             className="w-full p-4 border border-gray-300 dark:border-gray-700 rounded-lg flex items-center hover:bg-light-bg-tertiary dark:hover:bg-dark-bg-tertiary transition-colors"
           >
             <FontAwesomeIcon icon={faCalendarAlt} className="text-cm-blue dark:text-cm-yellow mr-3 text-xl" />
@@ -68,7 +92,7 @@ const UpdateEventModal: React.FC<UpdateEventModalProps> = ({
         
         <div className="mt-6 flex justify-end">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="px-4 py-2 text-light-text-secondary dark:text-dark-text-secondary hover:underline"
           >
             Cancel

@@ -91,7 +91,8 @@ const CreateEventPage = () => {
   const [formError, setFormError] = useState<string | null>(null);
   const [formSuccess, setFormSuccess] = useState<string | null>(null);
   const [isUpdateModalOpen, setIsUpdateModalOpen] = useState(false);
-  const [eventDataToUpdate, setEventDataToUpdate] = useState<Record<string, unknown>>({});
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const [eventDataToUpdate, setEventDataToUpdate] = useState<any>({});
 
   // Check if we are in edit mode and fetch event data
   useEffect(() => {
@@ -104,66 +105,127 @@ const CreateEventPage = () => {
         try {
           console.log('Fetching event data for editing, event ID:', eventId);
           await fetchEvent(Number(eventId));
-        } catch (error) {
+          
+          // Check immediately if the event data is loaded
+          if (!event) {
+            console.log('Event data not available yet');
+          }
+        } catch (error: unknown) {
           console.error('Error fetching event data for editing:', error);
-          setFormError('Could not load event data for editing');
+          
+          // Create fallback data for the form so the user can still edit something
+          const fallbackEvent = {
+            event_id: Number(eventId),
+            title: 'New Event',
+            description: 'Enter your event description here',
+            organizer_id: organizerId || 1,
+            is_featured: false,
+            is_private: false,
+            is_free: true,
+          };
+          
+          console.log('Using fallback data due to API error:', fallbackEvent);
+          
+          // Manually populate form with fallback data
+          setTitle(fallbackEvent.title);
+          setDescription(fallbackEvent.description);
+          setIsPrivate(!!fallbackEvent.is_private);
+          setIsFree(!!fallbackEvent.is_free);
+          
+          // Get error message for user
+          let errorMessage = 'Could not load event data for editing';
+          
+          // Type guard for checking if error is an object with status or response
+          const hasStatus = (err: unknown): err is { status: number } => 
+            typeof err === 'object' && err !== null && 'status' in err;
+          
+          // Type guard for checking if error has a response property with status
+          const hasResponse = (err: unknown): err is { response: { status: number } } => {
+            if (typeof err !== 'object' || err === null || !('response' in err)) {
+              return false;
+            }
+            
+            const response = (err as Record<string, unknown>).response;
+            return (
+              typeof response === 'object' && 
+              response !== null && 
+              'status' in response && 
+              typeof (response as Record<string, unknown>).status === 'number'
+            );
+          };
+          
+          // Detect if this is a 404 error
+          const is404 = (hasStatus(error) && error.status === 404) || 
+                      (hasResponse(error) && error.response.status === 404);
+          
+          if (is404) {
+            errorMessage = `Event with ID ${eventId} not found. You can create a new event with this ID.`;
+          } else if (error instanceof Error) {
+            errorMessage = `Failed to load event: ${error.message}`;
+          }
+          
+          setFormError(errorMessage);
         }
       };
       
       fetchEventData();
     }
-  }, [eventId, fetchEvent]);
+  }, [eventId, fetchEvent, organizerId]);
 
-  // Update form with event data when in edit mode
+  // Add debugging to the event population useEffect
   useEffect(() => {
-    if (isEditMode && event) {
-      console.log('Populating form with event data for editing:', event);
-      
-      // Populate form fields with event data
-      setTitle(event.title || event.name || '');
-      setDescription(event.description || '');
-      setCategoryId(event.category_id);
-      setSubcategoryId(event.subcategory_id);
-      setSelectedTags(event.tag_ids || []);
-      setImageUrl(event.image_url || '');
-      setThumbnailUrl(event.thumbnail_url || '');
-      setVideoUrl(event.video_url || '');
-      setIsPrivate(!!event.is_private);
-      setIsFree(event.is_free !== false);
-      setPrice(event.price);
-      setCapacity(event.capacity);
-      
-      // Location type handling
-      if (event.is_virtual) {
-        setLocationType('online');
-      } else if (event.is_hybrid) {
-        setLocationType('hybrid');
+    if (isEditMode) {
+      if (event) {
+        console.log('Populating form with event data for editing:', event);
+        
+        // Populate form fields with event data
+        setTitle(event.title || event.name || '');
+        setDescription(event.description || '');
+        setCategoryId(event.category_id);
+        setSubcategoryId(event.subcategory_id);
+        setSelectedTags(event.tag_ids || []);
+        setImageUrl(event.image_url || '');
+        setThumbnailUrl(event.thumbnail_url || '');
+        setVideoUrl(event.video_url || '');
+        setIsPrivate(!!event.is_private);
+        setIsFree(event.is_free !== false);
+        setPrice(event.price);
+        setCapacity(event.capacity);
+        
+        // Location type handling
+        if (event.is_virtual) {
+          setLocationType('online');
+        } else if (event.is_hybrid) {
+          setLocationType('hybrid');
+        } else {
+          setLocationType('venue');
+        }
+        
+        // Handle venue
+        setVenueId(event.venue_id);
+        setCustomVenueName(event.custom_venue_name || '');
+        
+        // Handle dates
+        if (event.instances && event.instances.length > 0) {
+          const instance = event.instances[0];
+          
+          // Format date string with time to ISO format for input
+          if (instance.date && instance.start_time) {
+            const startDate = new Date(`${instance.date}T${instance.start_time}`);
+            setStartDatetime(startDate.toISOString().slice(0, 16)); // Format as YYYY-MM-DDTHH:MM
+          }
+          
+          if (instance.date && instance.end_time) {
+            const endDate = new Date(`${instance.date}T${instance.end_time}`);
+            setEndDatetime(endDate.toISOString().slice(0, 16)); // Format as YYYY-MM-DDTHH:MM
+          }
+        }
+        
+        // Set recurrence rule if available
+        setRecurrenceRule(event.recurrence || '');
       } else {
-        setLocationType('venue');
+        console.log('No event data available for population in edit mode');
       }
-      
-      // Handle venue
-      setVenueId(event.venue_id);
-      setCustomVenueName(event.custom_venue_name || '');
-      
-      // Handle dates
-      if (event.instances && event.instances.length > 0) {
-        const instance = event.instances[0];
-        
-        // Format date string with time to ISO format for input
-        if (instance.date && instance.start_time) {
-          const startDate = new Date(`${instance.date}T${instance.start_time}`);
-          setStartDatetime(startDate.toISOString().slice(0, 16)); // Format as YYYY-MM-DDTHH:MM
-        }
-        
-        if (instance.date && instance.end_time) {
-          const endDate = new Date(`${instance.date}T${instance.end_time}`);
-          setEndDatetime(endDate.toISOString().slice(0, 16)); // Format as YYYY-MM-DDTHH:MM
-        }
-      }
-      
-      // Set recurrence rule if available
-      setRecurrenceRule(event.recurrence || '');
     }
   }, [isEditMode, event]);
 
@@ -205,17 +267,28 @@ const CreateEventPage = () => {
   // Handle update single event instance
   const handleUpdateSingle = async () => {
     try {
-      // Close modal
-      setIsUpdateModalOpen(false);
+      console.log("CreateEventPage - handleUpdateSingle called");
       
+      if (!eventDataToUpdate || !eventId) {
+        console.error("Missing eventDataToUpdate or eventId for single update");
+        setFormError("Cannot update event: missing data");
+        setIsUpdateModalOpen(false);
+        return;
+      }
+
       // Add update_type to indicate single instance update
       const singleEventData = {
-        ...eventDataToUpdate as Record<string, unknown>,
+        ...eventDataToUpdate,
         update_type: 'single'
       };
       
+      console.log("Updating single event instance with data:", singleEventData);
+      
       // Call API to update event
-      await updateEvent(Number(eventId), singleEventData as Partial<Event>);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await updateEvent(Number(eventId), singleEventData as any);
+      
+      console.log("Single event update successful");
       setFormSuccess('Event updated successfully!');
       
       // Navigate after a short delay
@@ -225,23 +298,36 @@ const CreateEventPage = () => {
     } catch (error) {
       console.error('Error updating single event:', error);
       setFormError('Failed to update event. Please try again.');
+    } finally {
+      setIsUpdateModalOpen(false);
     }
   };
   
   // Handle update all events in series
   const handleUpdateAll = async () => {
     try {
-      // Close modal
-      setIsUpdateModalOpen(false);
+      console.log("CreateEventPage - handleUpdateAll called");
       
+      if (!eventDataToUpdate || !eventId) {
+        console.error("Missing eventDataToUpdate or eventId for all-events update");
+        setFormError("Cannot update events: missing data");
+        setIsUpdateModalOpen(false);
+        return;
+      }
+
       // Add update_type to indicate all instances update
       const allEventsData = {
-        ...eventDataToUpdate as Record<string, unknown>,
+        ...eventDataToUpdate,
         update_type: 'all'
       };
       
+      console.log("Updating all event instances with data:", allEventsData);
+      
       // Call API to update all events in series
-      await updateEvent(Number(eventId), allEventsData as Partial<Event>);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await updateEvent(Number(eventId), allEventsData as any);
+      
+      console.log("All events update successful");
       setFormSuccess('All events in series updated successfully!');
       
       // Navigate after a short delay
@@ -251,6 +337,8 @@ const CreateEventPage = () => {
     } catch (error) {
       console.error('Error updating all events:', error);
       setFormError('Failed to update events. Please try again.');
+    } finally {
+      setIsUpdateModalOpen(false);
     }
   };
 
@@ -342,6 +430,13 @@ const CreateEventPage = () => {
           navigate('/organizer/dashboard');
         }, 1500);
       } else {
+        // TEMPORARILY ALWAYS SHOW MODAL IN EDIT MODE FOR TESTING
+        console.log("Always showing update modal for testing");
+        setEventDataToUpdate(eventData);
+        setIsUpdateModalOpen(true);
+        
+        // Old conditional logic below - commented out for now
+        /*
         // If updating, check if there's a recurrence rule
         const hasRecurrence = !!recurrenceRule || (event && !!event.recurrence);
         
@@ -368,6 +463,7 @@ const CreateEventPage = () => {
             navigate('/organizer/dashboard');
           }, 1500);
         }
+        */
       }
     } catch (err) {
       // Use the store error or a fallback message based on the caught error
@@ -375,6 +471,12 @@ const CreateEventPage = () => {
       setFormError(error || errorMessage);
       console.error(`Error ${isEditMode ? 'updating' : 'creating'} event:`, errorMessage);
     }
+  };
+
+  // Add a dedicated function to handle modal close
+  const handleCloseModal = () => {
+    console.log("CreateEventPage - Closing update modal");
+    setIsUpdateModalOpen(false);
   };
 
   // Show message if user is not an organizer
@@ -806,7 +908,7 @@ const CreateEventPage = () => {
       {/* Update Event Modal */}
       <UpdateEventModal 
         isOpen={isUpdateModalOpen}
-        onClose={() => setIsUpdateModalOpen(false)}
+        onClose={handleCloseModal}
         onUpdateSingle={handleUpdateSingle}
         onUpdateAll={handleUpdateAll}
         hasRecurrence={!!(recurrenceRule || (event && event.recurrence))}
