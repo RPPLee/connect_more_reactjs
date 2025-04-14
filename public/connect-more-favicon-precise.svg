@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- Background -->
+  <rect width="32" height="32" rx="4" ry="4" fill="#1A1A1A" />
+  
+  <!-- Border (slimmer for small icon) -->
+  <rect x="2" y="2" width="28" height="28" rx="3" ry="3" fill="#1A1A1A" stroke="#FFFFFF" stroke-width="1" />
+  
+  <!-- C for CONNECT -->
+  <text x="3" y="22" font-family="Verdana, Arial Black, sans-serif" font-size="16" font-weight="900" fill="#F0F0F0">C</text>
+  
+  <!-- M for MORE - moved left -->
+  <text x="14" y="22" font-family="Verdana, Arial Black, sans-serif" font-size="16" font-weight="900" fill="#E86C60" stroke="#333333" stroke-width="0.5">M</text>
+</svg>

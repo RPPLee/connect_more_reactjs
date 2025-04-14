@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 250">
+  <!-- Main logo box with black background and white border -->
+  <rect x="100" y="75" width="600" height="100" rx="16" ry="16" fill="#1A1A1A" />
+  <rect x="105" y="80" width="590" height="90" rx="12" ry="12" fill="#1A1A1A" stroke="#FFFFFF" stroke-width="2" />
+  
+  <!-- CONNECT text -->
+  <text x="120" y="145" font-family="Verdana, Arial Black, sans-serif" font-size="62" font-weight="900" fill="#F0F0F0">CONNECT</text>
+  
+  <!-- MORE text - moved a tad more to the right -->
+  <text x="460" y="145" font-family="Verdana, Arial Black, sans-serif" font-size="62" font-weight="900" fill="#E86C60" stroke="#333333" stroke-width="1">MORE</text>
+</svg>
